@@ -7,23 +7,53 @@ import Navbar from './components/navbar';
 
 import IndexPage from './pages/index';
 import ShowPage from './pages/show';
+import NewPage from './pages/new'
+
+import DB from './db';
 
 class App extends Component {
   state = {
-    notes: {
-      1: {
-        _id: 1,
-        title: "Hello, world",
-        body: "This is the body of my note.",
-        updatedAt: new Date()
-      },
-      2: {
-        _id: 2,
-        title: "Hello, world again",
-        body: "This is the body of my second note.",
-        updatedAt: new Date()
+    db: new DB('notes-react'),
+    notes: {},
+    loading: true
+  }
+
+  async componentDidMount() {
+    const notes = await this.state.db.getAllNotes();
+
+    this.setState({
+      notes,
+      loading: false
+    });
+  }
+
+  handleSave = async (note) => {
+    let { id } = await this.state.db.createNote(note);
+
+    const { notes } = this.state;
+    
+    this.setState({
+      notes: {
+        ...notes,
+        [id]: note
       }
+    });
+
+    return id;
+  }
+
+  renderContent() {
+    if (this.state.loading) {
+      return <h2>Loading...</h2>
     }
+
+    return (
+      <div className="app-content">
+      <Route exact path="/" component={(props) => <IndexPage {...props} notes={this.state.notes} /> } />
+      <Route exact path="/notes/:id" component={(props) => <ShowPage {...props} note={this.state.notes[props.match.params.id]} />} />
+<Route exact path="/new" component={(props) => <NewPage {...props} onSave={this.handleSave} />} />
+      </div>
+    );
   }
 
   render() {
@@ -31,10 +61,7 @@ class App extends Component {
       <BrowserRouter>
         <div className="App">
           <Navbar />
-          <div className="app-content">
-          <Route exact path="/" component={(props) => <IndexPage {...props} notes={this.state.notes} /> } />
-          <Route exact path="/notes/:id" component={(props) => <ShowPage {...props} note={this.state.notes[props.match.params.id]} />} />
-          </div>
+          { this.renderContent() }
         </div>
       </BrowserRouter>  
     );
